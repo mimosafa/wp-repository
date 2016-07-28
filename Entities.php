@@ -64,6 +64,7 @@ abstract class Entities {
 		if ( ! $done ) {
 			add_action( 'init', [ $this, 'register_taxonomies' ], 12 );
 			add_action( 'init', [ $this, 'register_post_types' ], 12 );
+			$done = true;
 		}
 	}
 
