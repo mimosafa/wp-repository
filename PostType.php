@@ -87,6 +87,62 @@ class PostType extends Entities {
 		'items_list'            => [ 'plural', '%s list' ]
 	];
 
+	/**
+	 * @static
+	 * @var array
+	 */
+	protected static $supports = [
+		'title',
+		'editor',
+		'author',
+		'thumbnail',
+		'excerpt',
+		'trackbacks',
+		'custom-fields',
+		'comments',
+		'revisions',
+		'page-attributes',
+		'post-formats'
+	];
+
+	/**
+	 * Paramator setter.
+	 *
+	 * @uses mimosafa\WP\Entities::__set()
+	 */
+	public function __set( $name, $var ) {
+		if ( substr( $name, 0, 8 ) === 'support_' ) {
+			/**
+			 * @var array
+			 */
+			$supports = apply_filters( __CLASS__' . \\supports', self::$supports, $this->name, $this->alias );
+			
+			$name = str_replace( '_', '-', substr( $name, 8 ) );
+			if ( in_array( $name, $supports, true ) ) {
+				if ( ! is_array( $this->args['supports'] ) ) {
+					if ( filter_var( $this->args['supports'], \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE ) === false ) {
+						$this->args['supports'] = [];
+					} else {
+						$this->args['supports'] = preg_split( '/[\s,]+/', $this->args['supports'] );
+					}
+				}
+				if ( $var === true && ! in_array( $name, $this->args['supports'], true ) ) {
+					$this->args['supports'][] = $name;
+				}
+				else if ( $var === false && in_array( $name, $this->args['supports'], true ) ) {
+					foreach ( $this->args['supports'] as $i => $support ) {
+						if ( $support === $name ) {
+							unset( $this->args['supports'][$i] );
+						}
+					}
+				}
+			}
+		}
+		else {
+			parent::__set( $name, $var );
+		}
+	}
+
 	public function init_arguments() {
 		/**
 		 * @var array          &$labels
