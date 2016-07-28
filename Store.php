@@ -52,7 +52,7 @@ class Store {
 	 * @param  string|null  $prefix
 	 * @param  array|atring $defaults
 	 */
-	public function __construct( $prefix = null, $defaults = [] ) {
+	public function __construct( $prefix = '', $defaults = [] ) {
 		if ( $prefix && ! self::regexp( $prefix, '/\A[a-z][a-z0-9_]{0,14}\z/' ) ) {
 			throw new \Exception;
 		}
