@@ -72,9 +72,10 @@ class Store {
 		if ( isset( self::$taxonomies[$name] ) ) {
 			return self::$taxonomies[$name];
 		}
-		if ( $alias = array_search( $name, self::$rewriteSlugs, true ) ) {
-			return $this->__get( $alias );
+		if ( $name = array_search( $name, self::$rewriteSlugs, true ) ) {
+			return $this->__get( $name );
 		}
+		return null;
 	}
 
 	/**
@@ -117,6 +118,26 @@ class Store {
 		self::checkNameOrAliasAvailable( $alias );
 		self::$rewriteSlugs[$name] = $alias;
 		return self::$taxonomies[$name] = new Taxonomy( $name, $alias, $args, $this );
+	}
+
+	public static function repositoryInstance( $name ) {
+		static $self;
+		$self ?: $self = new self;
+		return filter_var( $name ) ? $self->$name : null;
+	}
+
+	public static function postTypeInstance( $name ) {
+		if ( $instance = self::repositoryInstance( $name ) ) {
+			return $instance instanceof PostType ? $instance : null;
+		}
+		return null;
+	}
+
+	public static function taxonomyInstance( $name ) {
+		if ( $instance = self::repositoryInstance( $name ) ) {
+			return $instance instanceof Taxonomy ? $instance : null;
+		}
+		return null;
 	}
 
 	/**

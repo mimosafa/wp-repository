@@ -91,6 +91,10 @@ class Taxonomy extends Entities {
 	 */
 	public function __construct( $name, $alias, Array $args, Store $store ) {
 		parent::__construct( $name, $alias, $args, $store );
+		$this->_init_object_type_args();
+	}
+
+	private function _init_object_type_args() {
 		if ( isset( $this->args['object_type'] ) ) {
 			if ( is_string( $this->args['object_type'] ) ) {
 				$this->args['object_type'] = preg_split( '/[\s,]+/', $this->args['object_type'] );
@@ -100,6 +104,34 @@ class Taxonomy extends Entities {
 			}
 			unset( $this->args['object_type'] );
 			$this->object_type = array_unique( $this->object_type );
+		}
+		if ( ! $this->object_type ) {
+			$this->object_type = [];
+		}
+	}
+
+	/**
+	 * @access public
+	 *
+	 * @param  object|string 
+	 */
+	public function bind( $repository, $args = [] ) {
+		if ( ! is_object( $repository ) ) {
+			if ( $repository = Store::repositoryInstance( $repository ) ) { /* Repository */ }
+			else                                                          { return false; }
+		}
+		if ( $repository instanceof PostType ) { return $this->bind_post_type( $repository->alias ); }
+	}
+
+	/**
+	 * @access public
+	 *
+	 * @param  string $post_type
+	 * @return void
+	 */
+	public function bind_post_type( $post_type ) {
+		if ( filter_var( $post_type ) ) {
+			$this->object_type[] = $post_type;
 		}
 	}
 

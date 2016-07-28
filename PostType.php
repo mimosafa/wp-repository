@@ -143,6 +143,19 @@ class PostType extends Entities {
 		}
 	}
 
+	/**
+	 * @access public
+	 *
+	 * @param  object|string 
+	 */
+	public function bind( $repository, $args = [] ) {
+		if ( ! is_object( $repository ) ) {
+			if   ( $repository = Store::repositoryInstance( $repository ) ) { /* Repository */ }
+			else                                                            { return false; }
+		}
+		if ( $repository instanceof Taxonomy ) { return $repository->bind_post_type( $this->alias ); }
+	}
+
 	public function init_arguments() {
 		/**
 		 * @var array          &$labels

@@ -69,6 +69,13 @@ abstract class Entities {
 	}
 
 	/**
+	 * Paramator getter.
+	 */
+	public function __get( $name ) {
+		return in_array( $name, [ 'name', 'alias' ], true ) ? $this->$name : null;
+	}
+
+	/**
 	 * Paramator setter.
 	 */
 	public function __set( $name, $var ) {
