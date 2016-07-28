@@ -115,7 +115,7 @@ class PostType extends Entities {
 			/**
 			 * @var array
 			 */
-			$supports = apply_filters( __CLASS__' . \\supports', self::$supports, $this->name, $this->alias );
+			$supports = apply_filters( __CLASS__ . '\\supports', self::$supports, $this->name, $this->alias );
 			
 			$name = str_replace( '_', '-', substr( $name, 8 ) );
 			if ( in_array( $name, $supports, true ) ) {
