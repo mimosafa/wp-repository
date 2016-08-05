@@ -42,7 +42,7 @@ class Store {
 	 * @static
 	 * @var array
 	 */
-	private static $rewriteSlugs = [];
+	private static $realNames = [];
 
 	/**
 	 * Constructor
@@ -63,19 +63,27 @@ class Store {
 	}
 
 	/**
-	 * Instance getter.
+	 * Add default arguments
+	 *
+	 * @access public
+	 *
+	 * @param  array|string $defaults
+	 * @return void
 	 */
-	public function __get( $name ) {
-		if ( isset( self::$post_types[$name] ) ) {
-			return self::$post_types[$name];
-		}
-		if ( isset( self::$taxonomies[$name] ) ) {
-			return self::$taxonomies[$name];
-		}
-		if ( $name = array_search( $name, self::$rewriteSlugs, true ) ) {
-			return $this->__get( $name );
-		}
-		return null;
+	public function set_defaults( $defaults ) {
+		$this->defaults = wp_parse_args( $defaults, $this->defaults );
+	}
+
+	/**
+	 * Reset default arguments
+	 *
+	 * @access public
+	 *
+	 * @param  array|string $defaults
+	 * @return void
+	 */
+	public function reset_defaults( $defaults = [] ) {
+		$this->defaults = wp_parse_args( $defaults );
 	}
 
 	/**
@@ -88,14 +96,13 @@ class Store {
 	 * @return mimosafa\WP\Repository\PostType
 	 */
 	public function create_post_type( $name, $args = [] ) {
-		self::checkNameOrAliasAvailable( $name );
+		self::checkUsableAsName( $name );
 		$args = wp_parse_args( $args, $this->defaults );
 		$alias = $this->make_alias_string( $name, $args );
 		if ( ! $alias = self::regexp( $alias, '/\A[a-z0-9][a-z0-9_\-]{0,19}\z/' ) ) {
 			throw new \Exception;
 		}
-		self::checkNameOrAliasAvailable( $alias );
-		self::$rewriteSlugs[$name] = $alias;
+		self::$realNames[$name] = $alias;
 		return self::$post_types[$name] = new PostType( $name, $alias, $args, $this );
 	}
 
@@ -106,38 +113,81 @@ class Store {
 	 *
 	 * @param  string $name
 	 * @param  array|string $args
-	 * @return mimosafa\WP\Repository\PostType
+	 * @return mimosafa\WP\Repository\Taxonomy
 	 */
 	public function create_taxonomy( $name, $args = [] ) {
-		self::checkNameOrAliasAvailable( $name );
+		self::checkUsableAsName( $name );
 		$args = wp_parse_args( $args, $this->defaults );
 		$alias = $this->make_alias_string( $name, $args );
 		if ( ! $alias = self::regexp( $alias, '/\A[a-z][a-z_]{0,31}\z/' ) ) {
 			throw new \Exception;
 		}
-		self::checkNameOrAliasAvailable( $alias );
-		self::$rewriteSlugs[$name] = $alias;
+		self::$realNames[$name] = $alias;
 		return self::$taxonomies[$name] = new Taxonomy( $name, $alias, $args, $this );
 	}
 
-	public static function repositoryInstance( $name ) {
-		static $self;
-		$self ?: $self = new self;
-		return filter_var( $name ) ? $self->$name : null;
-	}
-
+	/**
+	 * Get PostType instance
+	 *
+	 * @static
+	 * @access public
+	 *
+	 * @param  string $var
+	 * @return mimosafa\WP\Repository\PostType|null
+	 */
 	public static function postTypeInstance( $name ) {
-		if ( $instance = self::repositoryInstance( $name ) ) {
-			return $instance instanceof PostType ? $instance : null;
+		if ( filter_var( $name ) ) {
+			foreach ( [ $name, self::getNameFromRealNames( $name ) ] as $var ) {
+				if ( is_string( $var ) && isset( self::$post_types[$var] ) ) {
+					return self::$post_types[$var];
+				}
+			}
 		}
 		return null;
 	}
 
+	/**
+	 * Get Taxonomy instance
+	 *
+	 * @static
+	 * @access public
+	 *
+	 * @param  string $var
+	 * @return mimosafa\WP\Repository\Taxonomy|null
+	 */
 	public static function taxonomyInstance( $name ) {
-		if ( $instance = self::repositoryInstance( $name ) ) {
-			return $instance instanceof Taxonomy ? $instance : null;
+		if ( filter_var( $name ) ) {
+			foreach ( [ $name, self::getNameFromRealNames( $name ) ] as $var ) {
+				if ( is_string( $var ) && isset( self::$taxonomies[$var] ) ) {
+					return self::$taxonomies[$var];
+				}
+			}
 		}
 		return null;
+	}
+
+	/**
+	 * Check string, usable as post_type OR taxonomy
+	 *
+	 * @static
+	 * @access private
+	 *
+	 * @param  string $string
+	 * @throws Exception
+	 * @return void
+	 */
+	private static function checkUsableAsName( $string ) {
+		if ( ! filter_var( $string ) ) {
+			throw new \Exception;
+		}
+		if ( $name = self::getNameFromRealNames( $string ) ) {
+			if ( $name === true ) {
+				throw new \Exception( "\"{$string}\" is already used as existing repository's name." );
+			}
+			else {
+				throw new \Exception( "\"{$string}\" is already used as existing repository's alias." );
+			}
+		}
 	}
 
 	/**
@@ -151,23 +201,6 @@ class Store {
 	private static function regexp( $var, $regexp ) {
 		$options = [ 'options' => [ 'regexp' => $regexp ] ];
 		return filter_var( $var, \FILTER_VALIDATE_REGEXP, $options );
-	}
-
-	/**
-	 * @static
-	 * @access private
-	 *
-	 * @param  string $string
-	 * @return void
-	 * @throws Exception
-	 */
-	private static function checkNameOrAliasAvailable( $string ) {
-		if ( in_array( $string, self::$rewriteSlugs, true ) ) {
-			throw new \Exception( "\"{$string}\" is already used as existing repository's name." );
-		}
-		if ( isset( self::$rewriteSlugs[$string] ) ) {
-			throw new \Exception( "\"{$string}\" is already used as existing repository's alias." );
-		}
 	}
 
 	/**
@@ -188,7 +221,29 @@ class Store {
 		} else {
 			$alias .= $name;
 		}
+		self::checkUsableAsName( $alias );
 		return $alias;
+	}
+
+	/**
+	 * Get $name as 'key' of self::$realNames
+	 *
+	 * @static
+	 * @access private
+	 *
+	 * @param  mixed $name
+	 * @return bool|string
+	 */
+	private static function getNameFromRealNames( $name ) {
+		if ( filter_var( $name ) ) {
+			if ( isset( self::$realNames[$name] ) ) {
+				return true;
+			}
+			if ( in_array( $name, self::$realNames, true ) ) {
+				return array_search( $name, self::$realNames, true );
+			}
+		}
+		return false;
 	}
 
 }

@@ -111,28 +111,41 @@ class Taxonomy extends Entities {
 	}
 
 	/**
+	 * Bind other repositories
+	 *
 	 * @access public
 	 *
-	 * @param  object|string 
+	 * @param  object|string $repository
+	 * @param  array $args @todo
+	 * @return bool
 	 */
 	public function bind( $repository, $args = [] ) {
-		if ( ! is_object( $repository ) ) {
-			if ( $repository = Store::repositoryInstance( $repository ) ) { /* Repository */ }
-			else                                                          { return false; }
-		}
-		if ( $repository instanceof PostType ) { return $this->bind_post_type( $repository->alias ); }
+		if      ( $result = $this->bind_post_type( $repository, $args ) ) :
+		#else if ( $result = $this->bind_role( $repository, $args ) )     :
+		endif;
+		return $result;
 	}
 
 	/**
+	 * Bind post_type repositories
+	 *
 	 * @access public
 	 *
-	 * @param  string $post_type
-	 * @return void
+	 * @param  object|string $repository
+	 * @param  array $args @todo
+	 * @return bool
 	 */
-	public function bind_post_type( $post_type ) {
-		if ( filter_var( $post_type ) ) {
-			$this->object_type[] = $post_type;
+	public function bind_post_type( $repository, $args = [] ) {
+		if ( ! is_object( $repository ) ) {
+			if ( ! $repository = Store::postTypeInstance( $repository ) ) {
+				return false;
+			}
 		}
+		if ( $repository instanceof PostType ) {
+			$this->object_type[] = $repository->alias;
+			return true;
+		}
+		return false;
 	}
 
 	public function init_arguments() {
